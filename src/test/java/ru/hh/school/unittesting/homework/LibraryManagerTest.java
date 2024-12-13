@@ -61,9 +61,11 @@ class LibraryManagerTest {
   void borrowBookShouldReturnFalseAndNotifyNotActiveUser() {
     when(userService.isUserActive(any())).thenReturn(false);
 
-    var isBorrowed = libraryManager.borrowBook("", "user1");
+    var isBorrowed = libraryManager.borrowBook("book1", "user1");
+    int availableBook = libraryManager.getAvailableCopies("book1");
 
     assertThat(isBorrowed).isFalse();
+    assertThat(availableBook).isEqualTo(1);
     verify(notificationService, times(1)).notifyUser("user1", "Your account is not active.");
   }
 
@@ -76,8 +78,10 @@ class LibraryManagerTest {
     when(userService.isUserActive(userId)).thenReturn(true);
 
     var isBorrowed = libraryManager.borrowBook(bookId, userId);
+    int availableBook = libraryManager.getAvailableCopies(bookId);
 
     assertThat(isBorrowed).isFalse();
+    assertThat(availableBook).isEqualTo(0);
   }
 
   @Test
@@ -85,14 +89,20 @@ class LibraryManagerTest {
     when(userService.isUserActive(any())).thenReturn(true);
 
     var isBorrowed = libraryManager.borrowBook("book1", "user1");
+    int availableBook = libraryManager.getAvailableCopies("book1");
 
     assertThat(isBorrowed).isTrue();
+    assertThat(availableBook).isEqualTo(0);
     verify(notificationService, times(1)).notifyUser("user1", "You have borrowed the book: book1");
   }
 
   @Test
   void returnBookShouldReturnFalseWhenBookNotBorrowed() {
-    assertThat(libraryManager.returnBook("book1", "user1")).isFalse();
+    boolean isReturned = libraryManager.returnBook("book1", "user1");
+    int availableBook = libraryManager.getAvailableCopies("book1");
+
+    assertThat(isReturned).isFalse();
+    assertThat(availableBook).isEqualTo(1);
   }
 
   @Test
@@ -101,8 +111,10 @@ class LibraryManagerTest {
     libraryManager.borrowBook("book1", "user1");
 
     var isReturned = libraryManager.returnBook("book1", "user2");
+    int availableBook = libraryManager.getAvailableCopies("book1");
 
     assertThat(isReturned).isFalse();
+    assertThat(availableBook).isEqualTo(0);
   }
 
   @Test
@@ -111,8 +123,10 @@ class LibraryManagerTest {
     libraryManager.borrowBook("book1", "user1");
 
     var isReturned = libraryManager.returnBook("book1", "user1");
+    int availableBook = libraryManager.getAvailableCopies("book1");
 
     assertThat(isReturned).isTrue();
+    assertThat(availableBook).isEqualTo(1);
     verify(notificationService, times(1)).notifyUser("user1", "You have returned the book: book1");
   }
 
@@ -129,7 +143,8 @@ class LibraryManagerTest {
       "20, false, false, 10",
       "20, true, false, 15",
       "20, false, true, 8",
-      "20, true, true, 12"
+      "20, true, true, 12",
+      "0, false, false, 0"
   })
   void calculateDynamicLateFeeShouldReturnValue(
       int overdueDays,
